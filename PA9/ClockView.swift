@@ -10,28 +10,28 @@ import UIKit
 
 class ClockView: UIView {
     
+    // Fundamental elements
     var clockRadius: CGFloat!
     var clockCenterPoint: CGPoint!
     var clockPath: UIBezierPath!
     
-    var timeIntervals: [Int] = [
-        0,  // Element 0 = seconds
-        0,  // Element 1 = minutes
-        0   // Element 2 = hours
-    ]
+    // Time intervals
+    var seconds: Int = 0
+    var minutes: Int = 0
+    var hours: Int = 0
     
     // Clock part measurements
     var clockBezelWidth: CGFloat!
     var minuteHandLength: CGFloat!
     var hourHandLength: CGFloat!
-    var handLengths = [CGFloat]()
     
     // Clock part colors
     let clockRimColor = UIColor.blackColor()
     let clockFaceColor = UIColor.whiteColor()
-    let handColors: [UIColor] = [UIColor.redColor(), UIColor.greenColor(), UIColor.blueColor()]
+    let secondHandColor: UIColor = UIColor.redColor()
+    let minuteHandColor: UIColor = UIColor.greenColor()
+    let hourHandColor: UIColor = UIColor.blueColor()
 
-    
     required init(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)!
 
@@ -60,26 +60,15 @@ class ClockView: UIView {
         
         minuteHandLength = clockRadius * (2/3)
         hourHandLength = clockRadius * (1/2)
-        
-        handLengths.append(clockRadius)
-        handLengths.append(minuteHandLength)
-        handLengths.append(hourHandLength)
     }
     
     
     func incrementByOneSecond() {
-        if timeIntervals[0] + 1 == 60 {
-            timeIntervals[0] = 0
-            
-            if timeIntervals[1] + 1 == 60 {
-                timeIntervals[1] = 0
-                ++timeIntervals[2]
-            } else {
-                ++timeIntervals[1]
-            }
-        } else {
-            ++timeIntervals[0]
-        }
+        seconds++
+        
+        hours += (minutes / 60)
+        minutes += (seconds / 60)
+        seconds %= 60
         
         setNeedsDisplay()
     }
@@ -96,31 +85,36 @@ class ClockView: UIView {
         
         clockPath.closePath()
         
-        // Draw the hands
-        for n in 0...2 {
-            let handLength: CGFloat = handLengths[n]
-            
-            let handPath = UIBezierPath(
-                arcCenter: clockCenterPoint,
-                radius: clockRadius,
-                startAngle: 0,
-                endAngle: CGFloat(2 * M_PI),
-                clockwise: true
-            )
+        // Draw second hand
+        drawHands(seconds, handLength: clockRadius, handColor: secondHandColor)
+        // Draw minute hand
+        drawHands(minutes, handLength: minuteHandLength, handColor: minuteHandColor)
+        // Draw hour hand
+        drawHands(hours, handLength: hourHandLength, handColor: hourHandColor)
+    }
+    
+    func drawHands(timeInterval: Int, handLength: CGFloat, handColor: UIColor) {
+        let handLength: CGFloat = handLength
+        
+        let handPath = UIBezierPath(
+            arcCenter: clockCenterPoint,
+            radius: clockRadius,
+            startAngle: 0,
+            endAngle: CGFloat(2 * M_PI),
+            clockwise: true
+        )
+        
+        handPath.moveToPoint(clockCenterPoint)
+        handPath.lineWidth = clockBezelWidth
+        
+        handPath.addLineToPoint(CGPoint(
+            x: Double(clockCenterPoint.x) - Double(handLength) * cos(M_PI_2 + (Double(timeInterval) * 2 * M_PI / 60)),
+            y: Double(clockCenterPoint.y) - Double(handLength) * sin(M_PI_2 + (Double(timeInterval) * 2 * M_PI / 60))
+            ))
 
-            handPath.moveToPoint(clockCenterPoint)
-            handPath.lineWidth = clockBezelWidth
-            
-            handPath.addLineToPoint(CGPoint(
-                x: Double(clockCenterPoint.x) - Double(handLength) * cos(M_PI_2 + (Double(timeIntervals[n]) * 2 * M_PI / 60)),
-                y: Double(clockCenterPoint.y) - Double(handLength) * sin(M_PI_2 + (Double(timeIntervals[n]) * 2 * M_PI / 60))
-                ))
-            
-            let handColor = handColors[n]
-            handColor.setStroke()
-            handPath.stroke()
-            
-            handPath.closePath()
-        }
+        handColor.setStroke()
+        handPath.stroke()
+        
+        handPath.closePath()
     }
 }
